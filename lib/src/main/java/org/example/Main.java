@@ -6,10 +6,12 @@ package org.example;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.vavr.control.Try;
 
 public class Main {
     public static void main(String[] args) {
@@ -21,12 +23,18 @@ public class Main {
                 .permittedNumberOfCallsInHalfOpenState(2)
                 .slidingWindowSize(2)
                 .recordExceptions(IOException.class, TimeoutException.class)
- //               .ignoreExceptions(BusinessException.class, OtherBusinessException.class)
+                // .ignoreExceptions(BusinessException.class, OtherBusinessException.class)
                 .build();
 
         CircuitBreakerRegistry circuitBreakerRegistry = CircuitBreakerRegistry.of(circuitBreakerConfig);
         CircuitBreaker circuitBreaker = circuitBreakerRegistry
                 .circuitBreaker("name");
-        //circuitBreaker.
+
+        Supplier<String> checkedSupplier = CircuitBreaker.decorateSupplier(circuitBreaker, () -> {
+            throw new RuntimeException("BAM!");
+        });
+        Try<String> result = Try.ofSupplier(checkedSupplier)
+                .recover(throwable -> "Hello Recovery");
+        System.out.println(result.get());
     }
 }

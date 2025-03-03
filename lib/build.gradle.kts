@@ -18,6 +18,9 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     implementation(libs.resilience4j)
+    implementation(libs.vavr)
+    implementation(libs.slf4j.api)
+    implementation(libs.slf4j.simple)
 }
 
 // Apply a specific Java toolchain to ease working on different environments.

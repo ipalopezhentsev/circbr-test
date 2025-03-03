@@ -4,7 +4,11 @@
 [versions]
 junit-jupiter = "5.11.3"
 resilience4j = "2.2.0"
+slf4j = "2.0.17"
 
 [libraries]
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-jupiter" }
 resilience4j = { module = "io.github.resilience4j:resilience4j-all", version.ref = "resilience4j" }
+vavr = { module = "io.github.resilience4j:resilience4j-vavr", version.ref = "resilience4j" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
