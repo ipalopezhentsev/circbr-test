@@ -21,6 +21,7 @@ dependencies {
     implementation(libs.vavr)
     implementation(libs.slf4j.api)
     implementation(libs.slf4j.simple)
+    testImplementation(libs.slf4j.simple)
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
@@ -32,4 +33,11 @@ java {
 
 tasks.named<Test>("test") {
     useJUnitPlatform()
+    testLogging {
+        events("passed", "skipped", "failed", "standardOut", "standardError")
+        showStandardStreams = true
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+    }
 }
