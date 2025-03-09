@@ -25,8 +25,9 @@ class RateLimiterVsBulkheadTest {
     private static final Logger log = LoggerFactory.getLogger(RateLimiterVsBulkheadTest.class);
 
     @Test
-    void rateLimiterJustSlowsDownAndDoesntFail() {
+    void rateLimiterJustSlowsDownAndDoesntFailInDefaultSetup() {
         // limits num of requests in some duration - slows them down but doesnt fail
+        // (UNLESS it waits for more than 5 secs - default value of timeoutDuration)
         var rateLimitConfig = RateLimiterConfig.custom()
                 .limitRefreshPeriod(Duration.ofSeconds(1L))
                 .limitForPeriod(10)
@@ -34,16 +35,34 @@ class RateLimiterVsBulkheadTest {
         var rateLimiter = RateLimiter.of("rl", rateLimitConfig);
         rateLimiter.getEventPublisher().onEvent(evt -> log.info(evt.toString()));
 
-        Function<Supplier<CompletionStage<String>>, Supplier<CompletionStage<String>>> rateLimiterProtectionDecorator = 
-        origFunction -> RateLimiter.decorateCompletionStage(rateLimiter, origFunction);
+        Function<Supplier<CompletionStage<String>>, Supplier<CompletionStage<String>>> rateLimiterProtectionDecorator = origFunction -> RateLimiter
+                .decorateCompletionStage(rateLimiter, origFunction);
         var numErrors = runParallelRqs(rateLimiterProtectionDecorator);
         assertEquals(numErrors, 0);
     }
 
     @Test
+    void rateLimiterCanBeFailing() {
+        // timeoutDuration is 5 secs by default, if we decrease it rate limiter will
+        // start failing surplus requests
+        var rateLimitConfig = RateLimiterConfig.custom()
+                .limitRefreshPeriod(Duration.ofSeconds(1L))
+                .limitForPeriod(10)
+                .timeoutDuration(Duration.ofSeconds(0L))
+                .build();
+        var rateLimiter = RateLimiter.of("rl", rateLimitConfig);
+        rateLimiter.getEventPublisher().onEvent(evt -> log.info(evt.toString()));
+
+        Function<Supplier<CompletionStage<String>>, Supplier<CompletionStage<String>>> rateLimiterProtectionDecorator = origFunction -> RateLimiter
+                .decorateCompletionStage(rateLimiter, origFunction);
+        var numErrors = runParallelRqs(rateLimiterProtectionDecorator);
+        assertTrue(numErrors > 0);
+    }
+
+    @Test
     void bulkheadActivelyFailsRqsInDefaultSetup() {
-        // limits num of simultaneous(!) rqs - and doesn't slow them down but rejects - 
-        //but only on default settings (which have maxWaitDuration=0).
+        // limits num of simultaneous(!) rqs - and doesn't slow them down but rejects -
+        // but only on default settings (which have maxWaitDuration=0).
         var bulkheadConfig = BulkheadConfig.custom()
                 .maxConcurrentCalls(10)
                 .maxWaitDuration(Duration.ofMinutes(0))
@@ -51,16 +70,16 @@ class RateLimiterVsBulkheadTest {
         var bulkhead = Bulkhead.of("bl", bulkheadConfig);
         bulkhead.getEventPublisher().onEvent(evt -> log.info(evt.toString()));
 
-        Function<Supplier<CompletionStage<String>>, Supplier<CompletionStage<String>>> bulkheadProtectionDecorator = 
-        origFunction -> Bulkhead.decorateCompletionStage(bulkhead, origFunction);
+        Function<Supplier<CompletionStage<String>>, Supplier<CompletionStage<String>>> bulkheadProtectionDecorator = origFunction -> Bulkhead
+                .decorateCompletionStage(bulkhead, origFunction);
         var numErrors = runParallelRqs(bulkheadProtectionDecorator);
-        assertTrue(numErrors>10);
+        assertTrue(numErrors > 10);
     }
 
     @Test
     void bulkheadCanBeAskedToWaitForSomeTimeBeforeRejecting() {
-        // limits num of simultaneous(!) rqs - and doesn't slow them down but rejects - 
-        //but only on default settings (which have maxWaitDuration=0).
+        // limits num of simultaneous(!) rqs - and doesn't slow them down but rejects -
+        // but only on default settings (which have maxWaitDuration=0).
         var bulkheadConfig = BulkheadConfig.custom()
                 .maxConcurrentCalls(10)
                 .maxWaitDuration(Duration.ofMinutes(1))
@@ -68,12 +87,11 @@ class RateLimiterVsBulkheadTest {
         var bulkhead = Bulkhead.of("bl", bulkheadConfig);
         bulkhead.getEventPublisher().onEvent(evt -> log.info(evt.toString()));
 
-        Function<Supplier<CompletionStage<String>>, Supplier<CompletionStage<String>>> bulkheadProtectionDecorator = 
-        origFunction -> Bulkhead.decorateCompletionStage(bulkhead, origFunction);
+        Function<Supplier<CompletionStage<String>>, Supplier<CompletionStage<String>>> bulkheadProtectionDecorator = origFunction -> Bulkhead
+                .decorateCompletionStage(bulkhead, origFunction);
         var numErrors = runParallelRqs(bulkheadProtectionDecorator);
         assertEquals(numErrors, 0);
     }
-
 
     private int runParallelRqs(
             Function<Supplier<CompletionStage<String>>, Supplier<CompletionStage<String>>> protectionDecorator) {
