@@ -1,2 +1,2 @@
 # circbr-test
-Test of circuit breaker via resilience4j
+Test of resilience4j primitives: circuit breaker, rate limiter, bulkhead
