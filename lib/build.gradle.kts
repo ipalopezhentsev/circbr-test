@@ -34,10 +34,6 @@ java {
 tasks.named<Test>("test") {
     useJUnitPlatform()
     testLogging {
-        events("passed", "skipped", "failed", "standardOut", "standardError")
         showStandardStreams = true
-        showExceptions = true
-        showCauses = true
-        showStackTraces = true
     }
 }
